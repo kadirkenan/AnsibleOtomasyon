@@ -1,0 +1,53 @@
+---
+  -name: Install tools on server
+   hosts: all
+   become: yes
+
+
+   tasks:
+    -name: Update APT package manager
+      ansible.builtin.apt:
+        update_cache: yes
+
+    -name: Install Java 11
+      ansible.builtin.apt:
+        name: openjdk-11-jdk
+        state: present
+
+    -name: Install Maven
+      ansible.builtin.apt:
+        name: maven
+        state: present
+
+    -name: Install Gradle
+      ansible.builtin.apt:
+        name: gradle
+        state: present
+
+    -name: Install .NET 6 SDK (Correct version)
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - dotnet-sdk-6.0
+        state: present
+      become: yes
+      become_user: root
+
+    -name: Install Docker
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+
+    -name: Install Docker Compose (Latest version)
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)"
+        dest: /usr/local/bin/docker-compose
+        mode: 'u+x,g+x' 
+
+    -name: Create symbolic link for Docker Compose
+      ansible.builtin.file:
+        src: /usr/local/bin/docker-compose
+        dest: /usr/bin/docker-compose
+        state: link
+
+       
