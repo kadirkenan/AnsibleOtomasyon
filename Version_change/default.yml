@@ -1,0 +1,6 @@
+java_version: 11
+maven_version: 3.9.6
+gradle_version: 7.4.2
+dotnet_sdk_channel: 6.0/stable
+docker_version: 23.0.3
+curl_version: 2.24.7

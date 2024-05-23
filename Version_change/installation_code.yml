@@ -1,0 +1,110 @@
+---
+- name: Install tools on server
+  hosts: all
+  become: yes
+
+  vars_files:
+    - default.yml
+
+  tasks:
+    - name: Add Microsoft package signing key
+      apt_key:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+
+    - name: Add Microsoft package repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-focal-prod focal main"
+        state: present
+        filename: 'microsoft-prod'
+
+    - name: Update APT package manager
+      apt:
+        update_cache: yes
+
+    - name: Install Java
+      apt:
+        name: openjdk-{{ java_version }}-jdk
+        state: present
+
+    - name: Download Maven
+      become: yes
+      get_url:
+        url: "http://apache.mirror.anlx.net/maven/maven-3/{{ maven_version }}/binaries/apache-maven-{{ maven_version }}-bin.tar.gz"
+        dest: "/tmp/apache-maven-{{ maven_version }}-bin.tar.gz"
+
+    - name: Extract Maven
+      become: yes
+      unarchive:
+        src: "/tmp/apache-maven-{{ maven_version }}-bin.tar.gz"
+        dest: "/opt/"
+        creates: "/opt/apache-maven-{{ maven_version }}"
+
+
+    - name: Download Gradle
+      get_url:
+        url: "https://services.gradle.org/distributions/gradle-{{ gradle_version }}-bin.zip"
+        dest: "/tmp/gradle-{{ gradle_version }}-bin.zip"
+
+    - name: Ensure snapd is installed
+      apt:
+        name: snapd
+        state: present
+
+    - name: Ensure snapd is running
+      systemd:
+        name: snapd
+        state: started
+        enabled: yes
+
+    - name: Install .NET SDK
+      snap:
+        name: dotnet-sdk
+        classic: yes
+        state: present
+        channel: "{{ dotnet_sdk_channel }}"
+
+    - name: Create symbolic link for dotnet
+      file:
+        src: /snap/bin/dotnet
+        dest: /usr/bin/dotnet
+        state: link
+
+    - name: Verify .NET SDK installation
+      command: dotnet --version
+      register: dotnet_version
+
+    - name: Display .NET SDK version
+      debug:
+        msg: "Installed .NET SDK version is {{ dotnet_version.stdout }}"
+
+    - name: Install Docker
+      apt:
+        name: docker.io={{ docker_version }}
+        state: present
+
+    - name: Get Docker Compose binary
+      shell: |
+        curl -L "https://github.com/docker/compose/releases/download/{{ docker_version }}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+      args:
+        creates: /usr/local/bin/docker-compose
+
+    - name: Ensure Docker Compose is executable
+      file:
+        path: /usr/local/bin/docker-compose
+        mode: 'u+x'
+        state: file
+
+    - name: Create symbolic link for Docker Compose
+      file:
+        src: /usr/local/bin/docker-compose
+        dest: /usr/bin/docker-compose
+        state: link
+
+    - name: Verify Docker Compose installation
+      command: docker-compose --version
+      register: docker_compose_version
+
+    - name: Display Docker Compose version
+      debug:
+        msg: "Installed Docker Compose version is {{ docker_compose_version.stdout }}"
