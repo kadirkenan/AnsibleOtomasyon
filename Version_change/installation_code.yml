@@ -22,10 +22,20 @@
       apt:
         update_cache: yes
 
+    - name: Remove existing Java if present
+      apt:
+        name: openjdk-{{ java_version }}-jdk
+        state: absent
+      ignore_errors: yes
+
     - name: Install Java
       apt:
         name: openjdk-{{ java_version }}-jdk
         state: present
+
+    - name: Remove existing Maven installations
+      command: find /opt/ -maxdepth 1 -type d -name 'apache-maven-*' -exec rm -rf {} \;
+      ignore_errors: yes
 
     - name: Download Maven
       become: yes
@@ -40,6 +50,11 @@
         dest: "/opt/"
         creates: "/opt/apache-maven-{{ maven_version }}"
 
+    - name: Remove existing Gradle if present
+      file:
+        path: "/opt/gradle-{{ gradle_version }}"
+        state: absent
+      ignore_errors: yes
 
     - name: Download Gradle
       get_url:
@@ -56,6 +71,12 @@
         name: snapd
         state: started
         enabled: yes
+
+    - name: Remove existing .NET SDK if present
+      snap:
+        name: dotnet-sdk
+        state: absent
+      ignore_errors: yes
 
     - name: Install .NET SDK
       snap:
@@ -80,12 +101,24 @@
 
     - name: Install Docker
       apt:
-        name: docker.io={{ docker_version }}
+        name: docker.io
         state: present
+
+    - name: Remove existing Docker Compose binary if present
+      file:
+        path: /usr/local/bin/docker-compose
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove Docker Compose symbolic link if present
+      file:
+        path: /usr/bin/docker-compose
+        state: absent
+      ignore_errors: yes
 
     - name: Get Docker Compose binary
       shell: |
-        curl -L "https://github.com/docker/compose/releases/download/{{ docker_version }}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        curl -L "https://github.com/docker/compose/releases/download/v{{ curl_version }}/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
       args:
         creates: /usr/local/bin/docker-compose
 
